@@ -39,6 +39,7 @@ type Props = {
 const MENU: { key: Route; title: string; sub: string; Icon: typeof PlayIcon }[] = [
   { key: "play", title: "Play", sub: "Computer, local two-player or LUPUS", Icon: PlayIcon },
   { key: "career", title: "Career", sub: "Climb from rookie to World Champion", Icon: WolfIcon },
+  { key: "online", title: "Play Online", sub: "Real people, live over the internet", Icon: PlayIcon },
   { key: "tournaments", title: "Cups & Tournaments", sub: "Win trophies and championships", Icon: TrophyIcon },
   { key: "puzzles", title: "Puzzles", sub: "Train your tactics", Icon: PuzzleIcon },
   { key: "learn", title: "Learn", sub: "Improve your skills", Icon: LearnIcon },

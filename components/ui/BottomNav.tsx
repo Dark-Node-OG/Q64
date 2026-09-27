@@ -2,7 +2,7 @@
 
 import { HomeIcon, PlayIcon, PuzzleIcon, LearnIcon, SettingsIcon } from "@/components/ui/icons";
 
-export type Route = "home" | "play" | "puzzles" | "learn" | "history" | "profile" | "settings" | "match" | "career" | "tournaments";
+export type Route = "home" | "play" | "puzzles" | "learn" | "history" | "profile" | "settings" | "match" | "career" | "tournaments" | "online";
 
 const ITEMS: { label: string; route: Route; Icon: typeof HomeIcon }[] = [
   { label: "Home", route: "home", Icon: HomeIcon },

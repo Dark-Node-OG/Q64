@@ -14,6 +14,7 @@ import LearnScreen from "@/components/pages/LearnScreen";
 import SettingsScreen from "@/components/pages/SettingsScreen";
 import CareerScreen from "@/components/pages/CareerScreen";
 import TournamentsScreen from "@/components/pages/TournamentsScreen";
+import OnlineScreen from "@/components/online/OnlineScreen";
 import type { Route } from "@/components/ui/BottomNav";
 import { getProfile } from "@/lib/store";
 
@@ -44,10 +45,12 @@ export default function Page() {
 
       {stage === "play" && (
         <ModePicker
-          onStart={(c) => { setConfig(c); setStage("match"); }}
+          onStart={(c) => { if (c.mode === "online") { setStage("online"); } else { setConfig(c); setStage("match"); } }}
           onBack={() => setStage("home")}
         />
       )}
+
+      {stage === "online" && <OnlineScreen onBack={() => setStage("home")} onNavigate={setStage} />}
 
       {stage === "career" && (
         <CareerScreen

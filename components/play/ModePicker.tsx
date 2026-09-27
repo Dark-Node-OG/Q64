@@ -29,7 +29,7 @@ const DIFFS: { key: Difficulty; label: string; sub: string }[] = [
 const MODES: { key: GameMode; title: string; sub: string; badge?: string; disabled?: boolean }[] = [
   { key: "computer", title: "Vs Computer", sub: "Offline — play the Q64 engine" },
   { key: "local", title: "Local — Two Players", sub: "Share one device, take turns" },
-  { key: "online", title: "Online — Vs Human", sub: "Matchmaking — connecting soon", badge: "Soon", disabled: true },
+  { key: "online", title: "Online — Vs Human", sub: "Sign in, then play a friend by room code", badge: "Live" },
   { key: "lupus", title: "Play with LUPUS", sub: "Your AI chess companion", badge: "Beta" },
 ];
 
