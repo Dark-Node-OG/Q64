@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Segoe UI", "Inter", system-ui, sans-serif;
+  --font-sans: "Segoe UI", "Inter", system-ui, sans-serif;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: #05070f;
+  color: #eaf1ff;
+  overflow-x: hidden;
+  font-family: var(--font-sans);
+}
+
+/* App is a mobile-first game canvas centered on larger screens. */
+.q64-frame {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  background: radial-gradient(120% 80% at 50% -10%, #0c1430 0%, #06090f 60%, #05070f 100%);
+}
+
+@media (min-width: 900px) {
+  .q64-frame {
+    max-width: 1100px;
+  }
+}
+
+/* Luminous panel used across the UI */
+.glass {
+  background: linear-gradient(180deg, rgba(22, 32, 74, 0.55), rgba(11, 16, 36, 0.65));
+  border: 1px solid rgba(77, 141, 255, 0.18);
+  backdrop-filter: blur(10px);
+}
+
+.glass-strong {
+  background: linear-gradient(180deg, rgba(22, 32, 74, 0.8), rgba(11, 16, 36, 0.9));
+  border: 1px solid rgba(77, 141, 255, 0.28);
+}
+
+.edge-glow {
+  box-shadow: 0 0 0 1px rgba(46, 125, 246, 0.25), 0 0 30px rgba(46, 125, 246, 0.12);
+}
+
+/* progress bar shimmer */
+.progress-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(46, 125, 246, 0.25) 0%,
+    #34d8f1 40%,
+    #2e7df6 60%,
+    rgba(46, 125, 246, 0.25) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2.2s linear infinite;
+}
+
+/* text shimmer for loading label */
+.text-shimmer {
+  background: linear-gradient(90deg, #6f8bd0 0%, #eaf1ff 50%, #6f8bd0 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 2.4s linear infinite;
+}
+
+/* vertical energy beam (loading / launch) */
+.beam-line {
+  background: linear-gradient(180deg, transparent, #34d8f1 40%, #2e7df6 60%, transparent);
+  filter: blur(1px);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* A chess piece slides in from its previous square, with a subtle 3D lift + shadow
+   halfway, so moves feel alive instead of jumping. --dx/--dy = start offset in %. */
+@keyframes q64-slide {
+  0% {
+    transform: translate(var(--dx, 0), var(--dy, 0)) scale(1);
+    filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.45));
+  }
+  55% {
+    transform: translate(calc(var(--dx, 0) * 0.35), calc(var(--dy, 0) * 0.35 - 9%)) scale(1.1);
+    filter: drop-shadow(0 10px 9px rgba(0, 0, 0, 0.5));
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.45));
+  }
+}
+.q64-slide {
+  animation: q64-slide 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, filter;
+}
+
+/* Gentle breathing glow on the big Q64 wordmark (launch / home). */
+@keyframes q64-glow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(52, 216, 241, 0.25)); }
+  50% { filter: drop-shadow(0 0 20px rgba(52, 216, 241, 0.55)); }
+}
+.q64-glow {
+  animation: q64-glow 3.2s ease-in-out infinite;
+}
