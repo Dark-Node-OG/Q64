@@ -6,7 +6,8 @@ import Q64Word from "@/components/ui/Q64Word";
 
 // Polished end-of-game result screen for a Q64 match.
 export default function ResultOverlay({
-  title, player, winner, score, moves, opponent, isLupus, opponentAvatar, playerAvatar, onRematch, onHome, pgn, result,
+  title, player, winner, score, moves, opponent, isLupus, opponentAvatar, playerAvatar,
+  onRematch, onHome, onContinue, ladderWin, pgn, result,
 }: {
   title: string;
   player: string;
@@ -19,6 +20,8 @@ export default function ResultOverlay({
   playerAvatar?: string | null;
   onRematch: () => void;
   onHome: () => void;
+  onContinue?: () => void; // career/tournament win → go back to the ladder (next opponent unlocked)
+  ladderWin?: boolean;
   pgn?: string;
   result?: "win" | "loss" | "draw";
 }) {
@@ -79,7 +82,11 @@ export default function ResultOverlay({
         )}
 
         <div className="grid grid-cols-2 gap-3">
-          <button onClick={onRematch} className="rounded-xl py-3 font-semibold text-white bg-gradient-to-r from-electric-600 to-electric-500 hover:shadow-glow transition">Rematch</button>
+          {ladderWin && onContinue ? (
+            <button onClick={onContinue} className="rounded-xl py-3 font-semibold text-white bg-gradient-to-r from-electric-600 to-electric-500 hover:shadow-glow transition">Continue</button>
+          ) : (
+            <button onClick={onRematch} className="rounded-xl py-3 font-semibold text-white bg-gradient-to-r from-electric-600 to-electric-500 hover:shadow-glow transition">Rematch</button>
+          )}
           <button onClick={onHome} className="rounded-xl py-3 font-semibold text-slate-200 glass hover:border-electric-500/50 transition">Home</button>
         </div>
       </div>

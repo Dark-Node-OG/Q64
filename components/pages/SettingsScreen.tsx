@@ -79,6 +79,17 @@ export default function SettingsScreen({ onBack, onNavigate }: { onBack: () => v
               className="w-full bg-night-600 border border-electric-500/25 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-electric-500"
             />
           </div>
+          <div className="py-3">
+            <div className="text-sm text-slate-200 mb-2">My quote</div>
+            <div className="text-[11px] text-slate-400 mb-2">A little word that shows on your card while you play — just like the champions.</div>
+            <input
+              value={profile.quote ?? ""}
+              maxLength={90}
+              placeholder="e.g. I don't lose, I learn."
+              onChange={(e) => setProfile({ ...profile, quote: e.target.value })}
+              className="w-full bg-night-600 border border-electric-500/25 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-electric-500"
+            />
+          </div>
           <button
             onClick={() => { clearHistory(); setCleared(true); setTimeout(() => setCleared(false), 1500); }}
             className="w-full text-left text-sm text-red-300/90 hover:text-red-300 py-3"

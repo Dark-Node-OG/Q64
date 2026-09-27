@@ -77,8 +77,8 @@ export function nextChallengerIndex(beaten: string[]): number {
 export function legendById(id: string): Legend | undefined {
   return LEGENDS.find((l) => l.id === id);
 }
-// Real players have a downloaded photo (.jpg); the Dark Node bots have a generated emblem (.svg).
-// So EVERY opponent always shows a proper avatar.
+// Every opponent has a photo at /legends/<id>.jpg (real players = real photos; the two Dark
+// Node bots = random faces), so an avatar always shows.
 export function legendPhoto(lg: Legend): string {
-  return lg.real ? `/legends/${lg.id}.jpg` : `/legends/${lg.id}.svg`;
+  return `/legends/${lg.id}.jpg`;
 }

@@ -8,7 +8,7 @@ import { decideMove, answerQuestion, type LupusDecision } from "@/lib/lupus/agen
 import { WolfIcon, BackIcon, FlagIcon, SettingsIcon, ChevronRight, SendIcon } from "@/components/ui/icons";
 import ResultOverlay from "@/components/match/ResultOverlay";
 import Q64Word from "@/components/ui/Q64Word";
-import { useSettings, recordGame, DIFFICULTY_RATING, type Color } from "@/lib/store";
+import { useSettings, recordGame, getProfile, DIFFICULTY_RATING, type Color } from "@/lib/store";
 import { markBeaten, legendPhoto } from "@/lib/legends";
 import { advanceCup } from "@/lib/tournaments";
 import { THEME_KEYS, BOARD_THEMES } from "@/lib/boardThemes";
@@ -35,11 +35,13 @@ function other(c: Color): Color {
 }
 
 export default function MatchScreen({
-  player, config, onExit,
+  player, config, onExit, onHome, onRematch,
 }: {
   player: Player;
   config: MatchConfig;
-  onExit: () => void;
+  onExit: () => void;   // back to where we came from (career/tournament ladder, or home)
+  onHome: () => void;   // all the way to the home screen
+  onRematch: () => void; // restart THIS match cleanly (no full app reload)
 }) {
   const { mode, difficulty, playerColor, opponent } = config;
   const isLocal = mode === "local";
@@ -278,6 +280,7 @@ export default function MatchScreen({
   const tabs: Tab[] = mode === "lupus" ? ["chat", "analysis", "moves"] : mode === "computer" ? ["analysis", "moves"] : ["moves"];
   // On mobile the panel is a slide-up drawer you pull open / withdraw (desktop keeps a side panel).
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const playerQuote = getProfile().quote?.trim();
 
   const topActive = game.turn() === (isLocal ? "b" : engineColor) && !over;
   const bottomActive = humanCanMove || (game.turn() === (isLocal ? "w" : playerColor) && !over);
@@ -344,6 +347,13 @@ export default function MatchScreen({
             thinking={thinking && engineColor === "w"}
             avatarUrl={isLocal ? null : player.avatar}
           />
+
+          {/* the player's own quote card — like the champions have */}
+          {!isLocal && playerQuote && (
+            <div className="mt-2 rounded-xl glass border border-violet-q/30 px-3 py-2">
+              <div className="text-[12px] italic text-slate-200">&ldquo;{playerQuote}&rdquo;</div>
+            </div>
+          )}
 
           {/* controls */}
           <div className="mt-3 grid grid-cols-4 gap-2 pb-4">
@@ -414,8 +424,10 @@ export default function MatchScreen({
           moves={Math.ceil(game.history().length / 2)}
           pgn={game.pgn()}
           result={result.playerResult}
-          onRematch={() => window.location.reload()}
-          onHome={onExit}
+          ladderWin={!!opponent && result.playerResult === "win"}
+          onContinue={onExit}
+          onRematch={onRematch}
+          onHome={onHome}
         />
       )}
     </div>

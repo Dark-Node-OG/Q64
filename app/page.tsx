@@ -22,6 +22,7 @@ type Stage = "intro" | "loading" | "createProfile" | Route;
 export default function Page() {
   const [stage, setStage] = useState<Stage>("intro");
   const [config, setConfig] = useState<MatchConfig | null>(null);
+  const [matchKey, setMatchKey] = useState(0); // bump to restart a match cleanly (no full reload)
   const [player, setPlayer] = useState({ name: "Player", avatar: null as string | null, rating: 1200 });
 
   // refresh the cached player details from storage whenever we land on a screen
@@ -72,9 +73,12 @@ export default function Page() {
 
       {stage === "match" && config && (
         <MatchScreen
+          key={matchKey}
           player={player}
           config={config}
           onExit={() => setStage(config.tournament ? "tournaments" : config.opponent ? "career" : "home")}
+          onHome={() => setStage("home")}
+          onRematch={() => setMatchKey((k) => k + 1)}
         />
       )}
 

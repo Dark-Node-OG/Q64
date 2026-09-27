@@ -32,6 +32,7 @@ export type Profile = {
   avatar: string | null; // data URL of the player's chosen photo
   rating: number;
   createdAt: number;
+  quote?: string; // the player's own little word/quote, shown on a card while they play
 };
 
 export type Settings = {
