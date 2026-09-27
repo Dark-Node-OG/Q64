@@ -7,10 +7,11 @@ import { useCallback, useEffect, useState } from "react";
 import Q64Word from "@/components/ui/Q64Word";
 import BottomNav, { type Route } from "@/components/ui/BottomNav";
 import { BackIcon } from "@/components/ui/icons";
-import { onlineEnabled } from "@/lib/supabaseClient";
+import { onlineEnabled, supabase } from "@/lib/supabaseClient";
 import {
   currentUser, signIn, signUp, signOut, createRoom, joinRoom,
-  touchOnline, onlinePlayers, type OnlineUser,
+  touchOnline, onlinePlayers, sendInvite, respondInvite,
+  type OnlineUser, type Invite,
 } from "@/lib/online";
 import OnlineMatch from "@/components/online/OnlineMatch";
 
@@ -18,6 +19,7 @@ export default function OnlineScreen({ onBack, onNavigate }: { onBack: () => voi
   const [user, setUser] = useState<OnlineUser | null>(null);
   const [ready, setReady] = useState(false);
   const [gameId, setGameId] = useState<string | null>(null);
+  const [incoming, setIncoming] = useState<Invite | null>(null);
 
   useEffect(() => { currentUser().then((u) => { setUser(u); setReady(true); }); }, []);
 
@@ -27,6 +29,19 @@ export default function OnlineScreen({ onBack, onNavigate }: { onBack: () => voi
     touchOnline();
     const t = setInterval(touchOnline, 30_000);
     return () => clearInterval(t);
+  }, [user]);
+
+  // listen for someone challenging me
+  useEffect(() => {
+    if (!user || !supabase) return;
+    const sb = supabase;
+    const ch = sb.channel(`invites:${user.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "invites", filter: `to_id=eq.${user.id}` }, (p) => {
+        const inv = p.new as Invite;
+        if (inv.status === "pending") setIncoming(inv);
+      })
+      .subscribe();
+    return () => { sb.removeChannel(ch); };
   }, [user]);
 
   if (!onlineEnabled) {
@@ -43,7 +58,37 @@ export default function OnlineScreen({ onBack, onNavigate }: { onBack: () => voi
   return (
     <Shell onBack={onBack} onNavigate={onNavigate}>
       <Lobby user={user} onEnter={setGameId} onSignOut={async () => { await signOut(); setUser(null); }} />
+      {incoming && (
+        <InvitePrompt
+          inv={incoming}
+          myName={user.username}
+          onClose={() => setIncoming(null)}
+          onAccepted={(id) => { setIncoming(null); setGameId(id); }}
+        />
+      )}
     </Shell>
+  );
+}
+
+function InvitePrompt({ inv, myName, onClose, onAccepted }: { inv: Invite; myName: string; onClose: () => void; onAccepted: (id: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  const act = async (accept: boolean) => {
+    setBusy(true);
+    const r = await respondInvite(inv, accept, myName);
+    setBusy(false);
+    if (accept && r.ok && "game" in r) onAccepted(r.game.id); else onClose();
+  };
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-night-900/85 px-6">
+      <div className="w-full max-w-xs glass-strong rounded-2xl p-5 text-center">
+        <div className="text-white font-bold text-lg mb-1">Challenge!</div>
+        <div className="text-sm text-slate-300 mb-4">{inv.from_name || "A player"} wants to play you.</div>
+        <div className="grid grid-cols-2 gap-3">
+          <button disabled={busy} onClick={() => act(true)} className="rounded-xl py-3 font-bold text-white bg-gradient-to-r from-electric-600 to-electric-500 disabled:opacity-60">Accept</button>
+          <button disabled={busy} onClick={() => act(false)} className="rounded-xl py-3 font-semibold text-slate-200 glass">Decline</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -180,8 +225,14 @@ function Lobby({ user, onEnter, onSignOut }: { user: OnlineUser; onEnter: (id: s
           <div className="space-y-1.5">
             {players.map((p) => (
               <div key={p.id} className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-slate-200"><span className="h-2 w-2 rounded-full bg-emerald-400" />{p.username}</span>
-                <span className="text-[11px] text-slate-500">{p.rating}</span>
+                <span className="flex items-center gap-2 text-slate-200"><span className="h-2 w-2 rounded-full bg-emerald-400" />{p.username}<span className="text-[11px] text-slate-500">· {p.rating}</span></span>
+                <button
+                  disabled={busy}
+                  onClick={async () => { setBusy(true); setMsg(""); const r = await sendInvite(p.id, user.username); setBusy(false); if (r.ok) onEnter(r.game.id); else setMsg(r.message); }}
+                  className="rounded-lg px-3 py-1 text-[12px] font-semibold text-white bg-electric-600/70 hover:bg-electric-600 disabled:opacity-60"
+                >
+                  Challenge
+                </button>
               </div>
             ))}
           </div>

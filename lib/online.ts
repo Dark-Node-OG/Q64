@@ -93,3 +93,25 @@ export async function pushMove(id: string, fen: string, moves: string[], turn: "
   if (!supabase) return;
   await supabase.from("games").update({ fen, moves, turn, status, winner, updated_at: new Date().toISOString() }).eq("id", id);
 }
+
+// ---- invites (challenge someone from the who's-online list) ----
+export type Invite = { id: string; from_id: string; from_name: string | null; to_id: string; game_id: string | null; game_code: string | null; status: string };
+
+export async function sendInvite(toId: string, hostName: string) {
+  if (!supabase) return { ok: false as const, message: "Online is not set up." };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, message: "Sign in first." };
+  const room = await createRoom("w", 10, hostName); // I host as White
+  if (!room.ok) return room;
+  const { error } = await supabase.from("invites").insert({ from_id: user.id, from_name: hostName, to_id: toId, game_id: room.game.id, game_code: room.game.code });
+  if (error) return { ok: false as const, message: error.message };
+  return { ok: true as const, game: room.game };
+}
+
+export async function respondInvite(inv: Invite, accept: boolean, myName: string) {
+  if (!supabase) return { ok: false as const, message: "Online is not set up." };
+  await supabase.from("invites").update({ status: accept ? "accepted" : "declined" }).eq("id", inv.id);
+  if (!accept) return { ok: false as const, message: "declined" };
+  if (!inv.game_code) return { ok: false as const, message: "That room is no longer available." };
+  return await joinRoom(inv.game_code, myName);
+}
