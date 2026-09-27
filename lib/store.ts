@@ -163,6 +163,32 @@ export function clearHistory() {
   write(KEYS.history, []);
 }
 
+// The player's chess LEVEL/title from their rating — real chess bands, beginner → Grandmaster.
+// Updates automatically as the rating changes.
+export function chessTitle(rating: number): { title: string; short: string } {
+  if (rating >= 2500) return { title: "Grandmaster", short: "GM" };
+  if (rating >= 2400) return { title: "International Master", short: "IM" };
+  if (rating >= 2300) return { title: "FIDE Master", short: "FM" };
+  if (rating >= 2200) return { title: "National Master", short: "NM" };
+  if (rating >= 2000) return { title: "Candidate Master", short: "CM" };
+  if (rating >= 1800) return { title: "Expert", short: "EXP" };
+  if (rating >= 1600) return { title: "Class A", short: "A" };
+  if (rating >= 1400) return { title: "Class B", short: "B" };
+  if (rating >= 1200) return { title: "Class C", short: "C" };
+  if (rating >= 1000) return { title: "Novice", short: "NOV" };
+  if (rating >= 800) return { title: "Beginner", short: "BEG" };
+  return { title: "Rookie", short: "RK" };
+}
+// Progress (0-1) toward the next title band, for a progress bar.
+export function titleProgress(rating: number): { pct: number; next: string } {
+  const bands = [0, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2300, 2400, 2500];
+  let lo = 0, hi = 2500;
+  for (let i = 0; i < bands.length - 1; i++) if (rating >= bands[i] && rating < bands[i + 1]) { lo = bands[i]; hi = bands[i + 1]; }
+  if (rating >= 2500) return { pct: 100, next: "Top" };
+  const pct = Math.round(((rating - lo) / (hi - lo)) * 100);
+  return { pct: Math.max(0, Math.min(100, pct)), next: chessTitle(hi).title };
+}
+
 // Wipe EVERYTHING (profile, rating, history, career, cups, puzzles, settings) for a fresh start.
 export function resetAccount() {
   try {

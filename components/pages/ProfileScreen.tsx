@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Q64Word from "@/components/ui/Q64Word";
 import BottomNav, { type Route } from "@/components/ui/BottomNav";
 import { BackIcon, WolfIcon } from "@/components/ui/icons";
-import { useProfile, getHistory, computeStats, fileToAvatar, type GameRecord, type Stats } from "@/lib/store";
+import { useProfile, getHistory, computeStats, fileToAvatar, chessTitle, titleProgress, type GameRecord, type Stats } from "@/lib/store";
 
 export default function ProfileScreen({ onBack, onNavigate }: { onBack: () => void; onNavigate: (r: Route) => void }) {
   const [profile, setProfile] = useProfile();
@@ -69,7 +69,22 @@ export default function ProfileScreen({ onBack, onNavigate }: { onBack: () => vo
                 <button onClick={() => { setNameDraft(profile.name); setEditing(true); }} className="text-[11px] text-electric-300">edit</button>
               </div>
             )}
-            <div className="text-sm text-slate-400">Rating <span className="text-cyan-q font-semibold tabular-nums">{profile.rating}</span></div>
+            <div className="flex items-center gap-2 text-sm text-slate-400">
+              <span className="rounded-md bg-electric-600/25 border border-electric-500/50 px-2 py-0.5 text-[11px] font-bold text-white">{chessTitle(profile.rating).short}</span>
+              <span className="text-white font-semibold">{chessTitle(profile.rating).title}</span>
+              <span>· Rating <span className="text-cyan-q font-semibold tabular-nums">{profile.rating}</span></span>
+            </div>
+          </div>
+        </section>
+
+        {/* level progress toward the next title */}
+        <section className="mt-3 glass rounded-2xl p-3">
+          <div className="flex items-center justify-between mb-1.5 text-[12px]">
+            <span className="text-slate-300">Level</span>
+            <span className="text-slate-400">{titleProgress(profile.rating).pct}% to {titleProgress(profile.rating).next}</span>
+          </div>
+          <div className="h-2 rounded-full bg-night-600 overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-electric-500 to-cyan-q transition-all" style={{ width: `${titleProgress(profile.rating).pct}%` }} />
           </div>
         </section>
 

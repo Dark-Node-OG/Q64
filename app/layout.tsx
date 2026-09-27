@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import PWA from "@/components/PWA";
 
 export const metadata: Metadata = {
   title: "Q64 — Chess Reimagined",
@@ -19,7 +20,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>{children}<PWA /></body>
     </html>
   );
 }

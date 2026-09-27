@@ -14,6 +14,7 @@ import {
   type OnlineUser, type Invite,
 } from "@/lib/online";
 import OnlineMatch from "@/components/online/OnlineMatch";
+import { chessTitle, titleProgress } from "@/lib/store";
 
 export default function OnlineScreen({ onBack, onNavigate }: { onBack: () => void; onNavigate: (r: Route) => void }) {
   const [user, setUser] = useState<OnlineUser | null>(null);
@@ -159,6 +160,7 @@ function Lobby({ user, onEnter, onSignOut }: { user: OnlineUser; onEnter: (id: s
   const [minutes, setMinutes] = useState(10);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [viewing, setViewing] = useState<OnlineUser | null>(null);
 
   const refresh = useCallback(() => { onlinePlayers(user.id).then(setPlayers); }, [user.id]);
   useEffect(() => { refresh(); const t = setInterval(refresh, 15_000); return () => clearInterval(t); }, [refresh]);
@@ -225,7 +227,10 @@ function Lobby({ user, onEnter, onSignOut }: { user: OnlineUser; onEnter: (id: s
           <div className="space-y-1.5">
             {players.map((p) => (
               <div key={p.id} className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-slate-200"><span className="h-2 w-2 rounded-full bg-emerald-400" />{p.username}<span className="text-[11px] text-slate-500">· {p.rating}</span></span>
+                <button onClick={() => setViewing(p)} className="flex items-center gap-2 text-slate-200 hover:text-white text-left">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" />{p.username}
+                  <span className="text-[10px] px-1.5 rounded bg-electric-600/25 border border-electric-500/40 text-white">{chessTitle(p.rating).short}</span>
+                </button>
                 <button
                   disabled={busy}
                   onClick={async () => { setBusy(true); setMsg(""); const r = await sendInvite(p.id, user.username); setBusy(false); if (r.ok) onEnter(r.game.id); else setMsg(r.message); }}
@@ -237,6 +242,32 @@ function Lobby({ user, onEnter, onSignOut }: { user: OnlineUser; onEnter: (id: s
             ))}
           </div>
         )}
+      </div>
+
+      {viewing && <PlayerCard p={viewing} onClose={() => setViewing(null)} onChallenge={async () => { const r = await sendInvite(viewing.id, user.username); if (r.ok) { setViewing(null); onEnter(r.game.id); } }} />}
+    </div>
+  );
+}
+
+function PlayerCard({ p, onClose, onChallenge }: { p: OnlineUser; onClose: () => void; onChallenge: () => void }) {
+  const t = chessTitle(p.rating);
+  const prog = titleProgress(p.rating);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-night-900/85 px-6" onClick={onClose}>
+      <div className="w-full max-w-xs glass-strong rounded-2xl p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-electric-500 to-violet-q flex items-center justify-center text-lg font-bold text-white">{p.username.slice(0, 1).toUpperCase()}</div>
+          <div>
+            <div className="text-white font-bold">{p.username}</div>
+            <div className="text-[12px] text-slate-400"><span className="text-white">{t.title}</span> · Rating {p.rating}</div>
+          </div>
+        </div>
+        <div className="text-[11px] text-slate-400 mb-1">{prog.pct}% to {prog.next}</div>
+        <div className="h-2 rounded-full bg-night-600 overflow-hidden mb-4"><div className="h-full bg-gradient-to-r from-electric-500 to-cyan-q" style={{ width: `${prog.pct}%` }} /></div>
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={onChallenge} className="rounded-xl py-2.5 font-bold text-white bg-gradient-to-r from-electric-600 to-electric-500">Challenge</button>
+          <button onClick={onClose} className="rounded-xl py-2.5 font-semibold text-slate-200 glass">Close</button>
+        </div>
       </div>
     </div>
   );
