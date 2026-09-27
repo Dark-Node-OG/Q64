@@ -10,7 +10,7 @@ import { BackIcon } from "@/components/ui/icons";
 import { onlineEnabled, supabase } from "@/lib/supabaseClient";
 import {
   currentUser, signIn, signUp, signOut, createRoom, joinRoom,
-  touchOnline, onlinePlayers, sendInvite, respondInvite,
+  touchOnline, onlinePlayers, sendInvite, respondInvite, playerRecord,
   type OnlineUser, type Invite,
 } from "@/lib/online";
 import OnlineMatch from "@/components/online/OnlineMatch";
@@ -252,6 +252,8 @@ function Lobby({ user, onEnter, onSignOut }: { user: OnlineUser; onEnter: (id: s
 function PlayerCard({ p, onClose, onChallenge }: { p: OnlineUser; onClose: () => void; onChallenge: () => void }) {
   const t = chessTitle(p.rating);
   const prog = titleProgress(p.rating);
+  const [rec, setRec] = useState<{ wins: number; losses: number; draws: number; games: number } | null>(null);
+  useEffect(() => { playerRecord(p.id).then(setRec); }, [p.id]);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-night-900/85 px-6" onClick={onClose}>
       <div className="w-full max-w-xs glass-strong rounded-2xl p-5" onClick={(e) => e.stopPropagation()}>
@@ -263,7 +265,13 @@ function PlayerCard({ p, onClose, onChallenge }: { p: OnlineUser; onClose: () =>
           </div>
         </div>
         <div className="text-[11px] text-slate-400 mb-1">{prog.pct}% to {prog.next}</div>
-        <div className="h-2 rounded-full bg-night-600 overflow-hidden mb-4"><div className="h-full bg-gradient-to-r from-electric-500 to-cyan-q" style={{ width: `${prog.pct}%` }} /></div>
+        <div className="h-2 rounded-full bg-night-600 overflow-hidden mb-3"><div className="h-full bg-gradient-to-r from-electric-500 to-cyan-q" style={{ width: `${prog.pct}%` }} /></div>
+        <div className="flex justify-around text-center mb-4">
+          <div><div className="text-emerald-300 font-bold">{rec ? rec.wins : "—"}</div><div className="text-[10px] text-slate-500">Wins</div></div>
+          <div><div className="text-red-300 font-bold">{rec ? rec.losses : "—"}</div><div className="text-[10px] text-slate-500">Losses</div></div>
+          <div><div className="text-slate-300 font-bold">{rec ? rec.draws : "—"}</div><div className="text-[10px] text-slate-500">Draws</div></div>
+          <div><div className="text-white font-bold">{rec ? rec.games : "—"}</div><div className="text-[10px] text-slate-500">Online games</div></div>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <button onClick={onChallenge} className="rounded-xl py-2.5 font-bold text-white bg-gradient-to-r from-electric-600 to-electric-500">Challenge</button>
           <button onClick={onClose} className="rounded-xl py-2.5 font-semibold text-slate-200 glass">Close</button>

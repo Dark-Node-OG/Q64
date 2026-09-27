@@ -5,11 +5,13 @@ import Q64Word from "@/components/ui/Q64Word";
 import BottomNav, { type Route } from "@/components/ui/BottomNav";
 import { BackIcon, WolfIcon } from "@/components/ui/icons";
 import { useProfile, getHistory, computeStats, fileToAvatar, chessTitle, titleProgress, type GameRecord, type Stats } from "@/lib/store";
+import { achievements, type Achievement } from "@/lib/achievements";
 
 export default function ProfileScreen({ onBack, onNavigate }: { onBack: () => void; onNavigate: (r: Route) => void }) {
   const [profile, setProfile] = useProfile();
   const [history, setHistory] = useState<GameRecord[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [badges, setBadges] = useState<Achievement[]>([]);
   const [editing, setEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -23,6 +25,7 @@ export default function ProfileScreen({ onBack, onNavigate }: { onBack: () => vo
     const h = getHistory();
     setHistory(h);
     setStats(computeStats(h));
+    setBadges(achievements());
   }, []);
 
   const recent = history.slice(0, 8);
@@ -96,6 +99,23 @@ export default function ProfileScreen({ onBack, onNavigate }: { onBack: () => vo
           <StatCard label="Losses" value={stats ? String(stats.losses) : "—"} />
           <StatCard label="Draws" value={stats ? String(stats.draws) : "—"} />
           <StatCard label="Best streak" value={stats ? `${stats.bestStreak}` : "—"} />
+        </section>
+
+        {/* achievements */}
+        <section className="mt-5">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs tracking-[0.3em] text-slate-400">ACHIEVEMENTS</div>
+            <div className="text-[11px] text-slate-500">{badges.filter((b) => b.unlocked).length}/{badges.length}</div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {badges.map((b) => (
+              <div key={b.id} title={b.desc} className={`glass rounded-xl p-2.5 text-center ${b.unlocked ? "border border-electric-500/40" : "opacity-45"}`}>
+                <div className="text-2xl leading-none mb-1">{b.icon}</div>
+                <div className="text-[11px] font-semibold text-white leading-tight">{b.name}</div>
+                <div className="text-[9px] text-slate-400 leading-tight mt-0.5">{b.unlocked ? "Unlocked" : b.desc}</div>
+              </div>
+            ))}
+          </div>
         </section>
 
         {/* recent form */}

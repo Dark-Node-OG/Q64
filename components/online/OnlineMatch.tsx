@@ -9,7 +9,7 @@ import Board from "@/components/chess/Board";
 import { BackIcon } from "@/components/ui/icons";
 import Q64Word from "@/components/ui/Q64Word";
 import { supabase } from "@/lib/supabaseClient";
-import { getGame, pushMove, type Game, type OnlineUser } from "@/lib/online";
+import { getGame, pushMove, applyOnlineResult, getRating, type Game, type OnlineUser } from "@/lib/online";
 import { useSettings } from "@/lib/store";
 
 export default function OnlineMatch({ gameId, me, onExit }: { gameId: string; me: OnlineUser; onExit: () => void }) {
@@ -52,6 +52,19 @@ export default function OnlineMatch({ gameId, me, onExit }: { gameId: string; me
   const bothHere = !!row?.guest_id;
   const myTurn = !!row && bothHere && !over && gameRef.current.turn() === myColor;
 
+  // when the game ends, update MY online rating (each player updates their own)
+  const ratingApplied = useRef(false);
+  useEffect(() => {
+    if (!row || row.status !== "finished" || ratingApplied.current) return;
+    ratingApplied.current = true;
+    const oppId = row.host_id === me.id ? row.guest_id : row.host_id;
+    const score = row.winner === me.id ? 1 : !row.winner || row.winner === "draw" ? 0.5 : 0;
+    (async () => {
+      const oppRating = oppId ? await getRating(oppId) : 1200;
+      await applyOnlineResult(me.rating, oppRating, score);
+    })();
+  }, [row, me]);
+
   const onSquare = useCallback((sq: Square) => {
     if (!myTurn || !row) return;
     const g = gameRef.current;
@@ -63,8 +76,8 @@ export default function OnlineMatch({ gameId, me, onExit }: { gameId: string; me
         const mv = g.move({ from: selected, to: sq, promotion: "q" });
         if (mv) {
           const isOver = g.isGameOver();
-          let winner: string | null = null;
-          if (g.isCheckmate()) winner = myColor === "w" ? (row.host_color === "w" ? row.host_name : row.guest_name) || "White" : (row.host_color === "b" ? row.host_name : row.guest_name) || "Black";
+          // winner = the winning player's id (I moved, so if it's mate I won), or "draw"
+          const winner: string | null = g.isCheckmate() ? me.id : isOver ? "draw" : null;
           const status: Game["status"] = isOver ? "finished" : "active";
           const moves = [...(row.moves || []), mv.san];
           setFen(g.fen());
@@ -80,15 +93,15 @@ export default function OnlineMatch({ gameId, me, onExit }: { gameId: string; me
     }
   }, [myTurn, selected, row, myColor, gameId]);
 
+  const oppName = row ? (row.host_id === me.id ? row.guest_name || "Opponent" : row.host_name || "Host") : "Opponent";
+
   const statusText = !row
     ? "Loading…"
     : !bothHere
     ? `Waiting for an opponent — share room code ${row.code}`
     : over
-    ? row.winner ? `${row.winner} wins` : "Game over"
+    ? (!row.winner || row.winner === "draw") ? "Draw" : row.winner === me.id ? "You win! 🏆" : `${oppName} wins`
     : myTurn ? "Your move" : "Opponent's move…";
-
-  const oppName = row ? (row.host_id === me.id ? row.guest_name || "Opponent" : row.host_name || "Host") : "Opponent";
 
   return (
     <div className="relative min-h-[100dvh] bg-night-900">

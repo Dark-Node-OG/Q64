@@ -108,6 +108,38 @@ export async function sendInvite(toId: string, hostName: string) {
   return { ok: true as const, game: room.game };
 }
 
+// ---- ratings + records ----
+function eloNext(my: number, opp: number, score: number) { // score: 1 win, 0.5 draw, 0 loss
+  const exp = 1 / (1 + Math.pow(10, (opp - my) / 400));
+  return Math.max(100, Math.round(my + 32 * (score - exp)));
+}
+// After an online game, update MY OWN rating (RLS lets each player update only their own).
+export async function applyOnlineResult(myRating: number, oppRating: number, score: number): Promise<number> {
+  if (!supabase) return myRating;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return myRating;
+  const next = eloNext(myRating, oppRating, score);
+  await supabase.from("profiles").update({ rating: next }).eq("id", user.id);
+  return next;
+}
+export async function getRating(id: string): Promise<number> {
+  if (!supabase) return 1200;
+  const { data } = await supabase.from("profiles").select("rating").eq("id", id).maybeSingle();
+  return data?.rating ?? 1200;
+}
+// A player's online record, computed from finished games (winner stores the winner's user id, or "draw").
+export async function playerRecord(id: string): Promise<{ wins: number; losses: number; draws: number; games: number }> {
+  if (!supabase) return { wins: 0, losses: 0, draws: 0, games: 0 };
+  const { data } = await supabase.from("games").select("winner,host_id,guest_id").or(`host_id.eq.${id},guest_id.eq.${id}`).eq("status", "finished");
+  let wins = 0, losses = 0, draws = 0;
+  for (const g of data || []) {
+    if (!g.winner || g.winner === "draw") draws++;
+    else if (g.winner === id) wins++;
+    else losses++;
+  }
+  return { wins, losses, draws, games: (data || []).length };
+}
+
 export async function respondInvite(inv: Invite, accept: boolean, myName: string) {
   if (!supabase) return { ok: false as const, message: "Online is not set up." };
   await supabase.from("invites").update({ status: accept ? "accepted" : "declined" }).eq("id", inv.id);
