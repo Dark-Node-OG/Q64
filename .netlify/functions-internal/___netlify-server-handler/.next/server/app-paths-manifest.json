@@ -1,7 +1,0 @@
-{
-  "/_not-found/page": "app/_not-found/page.js",
-  "/page": "app/page.js",
-  "/manifest.webmanifest/route": "app/manifest.webmanifest/route.js",
-  "/icon.svg/route": "app/icon.svg/route.js",
-  "/api/lupus/route": "app/api/lupus/route.js"
-}
