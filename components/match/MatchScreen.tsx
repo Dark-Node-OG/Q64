@@ -13,6 +13,7 @@ import { markBeaten, legendPhoto } from "@/lib/legends";
 import { advanceCup } from "@/lib/tournaments";
 import { THEME_KEYS, BOARD_THEMES } from "@/lib/boardThemes";
 import type { MatchConfig } from "@/components/play/ModePicker";
+import { updateMatchLive, clearSession, type MatchLive } from "@/lib/session";
 
 type Player = { name: string; rating: number; avatar?: string | null };
 type ChatMsg = { id: number; who: "you" | "lupus"; text: string; time: string };
@@ -35,13 +36,14 @@ function other(c: Color): Color {
 }
 
 export default function MatchScreen({
-  player, config, onExit, onHome, onRematch,
+  player, config, onExit, onHome, onRematch, resume,
 }: {
   player: Player;
   config: MatchConfig;
   onExit: () => void;   // back to where we came from (career/tournament ladder, or home)
   onHome: () => void;   // all the way to the home screen
   onRematch: () => void; // restart THIS match cleanly (no full app reload)
+  resume?: MatchLive;   // restore an in-progress game after a page refresh
 }) {
   const { mode, difficulty, playerColor, opponent } = config;
   const isLocal = mode === "local";
@@ -56,10 +58,18 @@ export default function MatchScreen({
 
   const [settings, setSettings] = useSettings();
 
-  const gameRef = useRef(new Chess());
+  // Rebuild the board from a saved game if we're resuming after a refresh.
+  const gameRef = useRef<Chess>(undefined as unknown as Chess);
+  if (!gameRef.current) {
+    const c = new Chess();
+    if (resume?.pgn) { try { c.loadPgn(resume.pgn); } catch { /* fall back to a fresh board */ } }
+    gameRef.current = c;
+  }
+  const resumeHist = gameRef.current.history({ verbose: true });
+  const resumeLast = resumeHist.length ? { from: resumeHist[resumeHist.length - 1].from as Square, to: resumeHist[resumeHist.length - 1].to as Square } : null;
   const [fen, setFen] = useState(gameRef.current.fen());
   const [selected, setSelected] = useState<Square | null>(null);
-  const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null);
+  const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(resumeLast);
   const [thinking, setThinking] = useState(false);
   const [tab, setTab] = useState<Tab>(mode === "lupus" ? "chat" : mode === "computer" ? "analysis" : "moves");
   const [messages, setMessages] = useState<ChatMsg[]>(
@@ -69,9 +79,9 @@ export default function MatchScreen({
   );
   const [analysis, setAnalysis] = useState<LupusDecision | null>(null);
   const [input, setInput] = useState("");
-  const [whiteMs, setWhiteMs] = useState(START_MS);
-  const [blackMs, setBlackMs] = useState(START_MS);
-  const [ended, setEnded] = useState<null | "resign" | "timeout">(null);
+  const [whiteMs, setWhiteMs] = useState(resume?.whiteMs ?? START_MS);
+  const [blackMs, setBlackMs] = useState(resume?.blackMs ?? START_MS);
+  const [ended, setEnded] = useState<null | "resign" | "timeout">(resume?.ended ?? null);
   const [reviewPly, setReviewPly] = useState<number | null>(null); // null = live
   const [showSettings, setShowSettings] = useState(false);
   const msgId = useRef(2);
@@ -155,10 +165,20 @@ export default function MatchScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fen, over]);
 
+  // persist the live game so a browser refresh RESUMES it instead of dropping to home
+  const liveRef = useRef<MatchLive>({ pgn: "", whiteMs, blackMs, ended });
+  liveRef.current = { pgn: gameRef.current.pgn(), whiteMs, blackMs, ended };
+  useEffect(() => {
+    const id = setInterval(() => { if (!over) updateMatchLive(liveRef.current); }, 1500);
+    return () => clearInterval(id);
+  }, [over]);
+  useEffect(() => { if (!over) updateMatchLive(liveRef.current); }, [fen]); // save on every move // eslint-disable-line react-hooks/exhaustive-deps
+
   // record the finished game once
   useEffect(() => {
     if (!over || recorded.current) return;
     recorded.current = true;
+    clearSession(); // game is done — nothing to resume
     const r = outcome();
     let result: "win" | "loss" | "draw";
     if (!r.winnerColor) result = "draw";

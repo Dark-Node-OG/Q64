@@ -9,6 +9,8 @@
 .env
 .env.local
 .env*.local
+.nf_env.json
+*_env.json
 
 # misc
 *.log

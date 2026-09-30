@@ -17,6 +17,7 @@ import TournamentsScreen from "@/components/pages/TournamentsScreen";
 import OnlineScreen from "@/components/online/OnlineScreen";
 import type { Route } from "@/components/ui/BottomNav";
 import { getProfile } from "@/lib/store";
+import { loadSession, saveSession, clearSession, type MatchLive } from "@/lib/session";
 
 type Stage = "intro" | "loading" | "createProfile" | Route;
 
@@ -24,7 +25,17 @@ export default function Page() {
   const [stage, setStage] = useState<Stage>("intro");
   const [config, setConfig] = useState<MatchConfig | null>(null);
   const [matchKey, setMatchKey] = useState(0); // bump to restart a match cleanly (no full reload)
+  const [resumeLive, setResumeLive] = useState<MatchLive | undefined>(undefined);
+  const [initialGameId, setInitialGameId] = useState<string | null>(null);
   const [player, setPlayer] = useState({ name: "Player", avatar: null as string | null, rating: 1200 });
+
+  // On load, resume an in-progress game if there is one (survives a page refresh).
+  useEffect(() => {
+    const s = loadSession();
+    if (!s) return;
+    if (s.kind === "match") { setConfig(s.config); setResumeLive(s.live); setStage("match"); }
+    else if (s.kind === "online") { setInitialGameId(s.gameId); setStage("online"); }
+  }, []);
 
   // refresh the cached player details from storage whenever we land on a screen
   useEffect(() => {
@@ -34,6 +45,15 @@ export default function Page() {
 
   // after loading, send first-time players to profile creation
   const afterLoading = () => setStage(getProfile().name ? "home" : "createProfile");
+
+  // start a fresh offline match and remember it so a refresh won't drop out
+  const startMatch = (c: MatchConfig) => {
+    setResumeLive(undefined);
+    setConfig(c);
+    saveSession({ kind: "match", config: c });
+    setStage("match");
+  };
+  const leaveMatch = (to: Stage) => { clearSession(); setStage(to); };
 
   return (
     <main className="q64-frame">
@@ -45,21 +65,18 @@ export default function Page() {
 
       {stage === "play" && (
         <ModePicker
-          onStart={(c) => { if (c.mode === "online") { setStage("online"); } else { setConfig(c); setStage("match"); } }}
+          onStart={(c) => { if (c.mode === "online") { setStage("online"); } else { startMatch(c); } }}
           onBack={() => setStage("home")}
         />
       )}
 
-      {stage === "online" && <OnlineScreen onBack={() => setStage("home")} onNavigate={setStage} />}
+      {stage === "online" && <OnlineScreen onBack={() => leaveMatch("home")} onNavigate={(r) => leaveMatch(r)} initialGameId={initialGameId} />}
 
       {stage === "career" && (
         <CareerScreen
           onBack={() => setStage("home")}
           onNavigate={setStage}
-          onPlay={(lg) => {
-            setConfig({ mode: "computer", difficulty: lg.difficulty, playerColor: "w", opponent: lg });
-            setStage("match");
-          }}
+          onPlay={(lg) => startMatch({ mode: "computer", difficulty: lg.difficulty, playerColor: "w", opponent: lg })}
         />
       )}
 
@@ -67,10 +84,7 @@ export default function Page() {
         <TournamentsScreen
           onBack={() => setStage("home")}
           onNavigate={setStage}
-          onPlay={(lg, cupId) => {
-            setConfig({ mode: "computer", difficulty: lg.difficulty, playerColor: "w", opponent: lg, tournament: { cupId } });
-            setStage("match");
-          }}
+          onPlay={(lg, cupId) => startMatch({ mode: "computer", difficulty: lg.difficulty, playerColor: "w", opponent: lg, tournament: { cupId } })}
         />
       )}
 
@@ -79,9 +93,10 @@ export default function Page() {
           key={matchKey}
           player={player}
           config={config}
-          onExit={() => setStage(config.tournament ? "tournaments" : config.opponent ? "career" : "home")}
-          onHome={() => setStage("home")}
-          onRematch={() => setMatchKey((k) => k + 1)}
+          resume={resumeLive}
+          onExit={() => leaveMatch(config.tournament ? "tournaments" : config.opponent ? "career" : "home")}
+          onHome={() => leaveMatch("home")}
+          onRematch={() => { setResumeLive(undefined); saveSession({ kind: "match", config }); setMatchKey((k) => k + 1); }}
         />
       )}
 
